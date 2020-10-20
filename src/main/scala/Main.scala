@@ -20,7 +20,7 @@ object Main {
     val PROTOCOL: String = "https"
     val CONSEIl_HOST: String = "conseil-prod.cryptonomic-infra.tech"
     val CONSEIL_PORT: Int = 443
-    val CONSEIl_API_KEY: String = ""
+    val CONSEIl_API_KEY: String = "f86ab59d-d2ea-443b-98e2-6c0785e3de8c"
     val CONSEIL: org.http4s.Uri = Uri.unsafeFromString(PROTOCOL + "://" + CONSEIl_HOST + ":" + CONSEIL_PORT)
 
     def main(args: Array[String]): Unit = {
@@ -52,6 +52,9 @@ object Main {
 
         println("\n\n\nTesting Block Head\n")
         println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosChainRequests.TEZOS_BLOCK_HEAD)))
+
+        println("\n\n\nTesting Operation Kinds\n")
+        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosChainRequests.TEZOS_OPERATION_KINDS)))
 
 
 

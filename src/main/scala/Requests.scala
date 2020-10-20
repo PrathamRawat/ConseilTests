@@ -286,7 +286,7 @@ object Requests {
 
     object TezosChainRequests {
 
-        final val TEZOS_OPERATION_KINDS: String = "v2/metadata/tezos/" + CONSEIL_NETWORK + "/operations/kind"
+        final val TEZOS_OPERATION_KINDS: String = "/v2/metadata/tezos/" + CONSEIL_NETWORK + "/operations/kind"
 
         final val TEZOS_BLOCK_HEAD: String = "/v2/data/tezos/" + CONSEIL_NETWORK + "/blocks/head"
 
