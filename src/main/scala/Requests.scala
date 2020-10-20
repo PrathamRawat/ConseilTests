@@ -39,7 +39,12 @@ object Requests {
         "registered_tokens"
     )
 
-    def getTezosAttributeURI(entity: String): String = "/v2/metadata/tezos/" + CONSEIL_NETWORK + "/" + entity + "/attributes"
+    /**
+     * Generate a path to get attributes for a given entity
+     * @param entity the entity to get attribtues for
+     * @return the conseil api endpoint for that specific entity's attributes
+     */
+    def getTezosAttributePath(entity: String): String = "/v2/metadata/tezos/" + CONSEIL_NETWORK + "/" + entity + "/attributes"
 
     object TezosChainRequests {
 

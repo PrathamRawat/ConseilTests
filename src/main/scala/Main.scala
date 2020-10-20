@@ -21,85 +21,46 @@ object Main {
     val CONSEIl_HOST: String = "conseil-prod.cryptonomic-infra.tech"
     val CONSEIL_PORT: Int = 443
     val CONSEIl_API_KEY: String = ""
+    val CONSEIL: org.http4s.Uri = Uri.unsafeFromString(PROTOCOL + "://" + CONSEIl_HOST + ":" + CONSEIL_PORT)
 
     def main(args: Array[String]): Unit = {
 
         val httpClient: BlazeClientBuilder[IO] = createHttpClient()
-        val conseilHost: org.http4s.Uri = Uri.unsafeFromString(PROTOCOL + "://" + CONSEIl_HOST + ":" + CONSEIL_PORT)
 
         //        TESTING CONSEIL BUILD REQUESTS
 
         println("\n\n\nTesting Info Endpoint:\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.ConseilRequests.CONSEIL_BUILD_INFO)))
+        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.ConseilRequests.CONSEIL_BUILD_INFO)))
 
         println("\n\n\nTesting Platforms Endpoint\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.ConseilRequests.CONSEIL_PLATFORMS)))
+        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.ConseilRequests.CONSEIL_PLATFORMS)))
 
         //        TESTING CONSEIL TEZOS BUILD CONFIG
 
         println("\n\n\nTesting Tezos Networks\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosConfigRequests.TEZOS_NETWORKS)))
+        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosConfig.TEZOS_NETWORKS)))
 
         println("\n\n\nTesting Tezos Entitites\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosConfigRequests.TEZOS_ENTITIES)))
+        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosConfig.TEZOS_ENTITIES)))
 
         //        TESTING TEZOS ENTITY ATTRIBUTES
+        testAttributes(httpClient, Requests.TEZOS_ENTITIES)
 
-        println("\n\n\nTesting Tezos Accounts Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_ACCOUNTS_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Account History Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_ACCOUNTS_HISTORY_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Baker Registry Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_BAKER_REGISTRY_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Bakers Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_BAKER_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Baker History Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_BAKERS_HISTORY_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Balance Updates Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_BALANCE_UPDATES_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Big Map Contents Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_BIG_MAP_CONTENTS_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Big Map Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_BIG_MAPS_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Block Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_BLOCK_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Fees Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_FEES_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Governance Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_GOVERNANCE_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Known Addresses Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_KNOWN_ADDRESSES_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Operation Groups Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_OPERATION_GROUPS_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Operations Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_OPERATIONS_ATTRIBUTES)))
-
-        println("\n\n\nTesting Tezos Originated Big Maps Attributes\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosEntities.TEZOS_ORIGINATED_ACCOUNT_MAPS_ATTRIBUTES)))
 
 
         //        TESTING TEZOS CHAIN DATA ENDPOINTS
 
         println("\n\n\nTesting Block Head\n")
-        println(sendConseilRequest(httpClient, conseilHost.withPath(Requests.TezosChainRequests.TEZOS_BLOCK_HEAD)))
+        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosChainRequests.TEZOS_BLOCK_HEAD)))
 
 
 
     }
 
+    /**
+     * Create the http client used to make requests
+     * @return The client object
+     */
     def createHttpClient(): BlazeClientBuilder[IO] = {
 
         val pool = Executors.newCachedThreadPool()
@@ -111,6 +72,12 @@ object Main {
         clientBuild
     }
 
+    /**
+     * Send a conseil request with an API Key and proper headers
+     * @param client The BlazeClientBuilder client with which to make the request
+     * @param queryUrl The URI to query
+     * @return String results from the query performed
+     */
     def sendConseilRequest(client: BlazeClientBuilder[IO], queryUrl: Uri): String = {
 
         val conseilRequest = GET(
@@ -125,9 +92,16 @@ object Main {
         }.unsafeRunSync()
     }
 
-
-    def test(name: String, path: String): Unit = {
-        println()
+    /**
+     * Test retrieval of all tezos attributes from the entities given
+     * @param httpClient The BlazeClientBuilder http client to make the conseil request
+     * @param entities The Array of entities grab attributes for
+     */
+    def testAttributes(httpClient: BlazeClientBuilder[IO], entities: Array[String]): Unit = {
+        entities.foreach(entity => {
+            println("\n\n\nTesting Tezos " + entity + " Attributes\n")
+            println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.getTezosAttributePath(entity))))
+        })
     }
 
 }
