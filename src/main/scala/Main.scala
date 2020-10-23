@@ -1,19 +1,27 @@
 package main
 
-import main.Requests
+import org.http4s.Request
 import org.http4s.client.blaze._
-import org.http4s.client._
-import org.http4s.client.dsl.io._
-import org.http4s.headers._
-import org.http4s.{Header, MediaType, ParseResult, Uri}
-import org.http4s.Method._
-import org.http4s.UriTemplate._
+//import org.http4s.circe._
 import java.util.concurrent.Executors
 
-import scala.concurrent.ExecutionContext
-import cats.effect.{Blocker, ContextShift, IO}
+import cats.effect.{ContextShift, IO}
+import org.http4s.Method._
+import org.http4s.client.dsl.io._
+import org.http4s.headers._
+import org.http4s.{Header, MediaType, Method, Uri}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.jawn._
+import io.circe.syntax._
+import io.circe.Json
+
+//import org.json4s._
+//import org.json4s.native.Serialization._
+//import org.json4s.native.Serialization
+
+import scala.concurrent.ExecutionContext
 
 object Main {
 
@@ -44,7 +52,9 @@ object Main {
         println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosConfig.TEZOS_ENTITIES)))
 
         //        TESTING TEZOS ENTITY ATTRIBUTES
-        testAttributes(httpClient, Requests.TEZOS_ENTITIES)
+        testAttributes(httpClient)
+
+        testAttributeData(httpClient)
 
 
 
@@ -96,15 +106,59 @@ object Main {
     }
 
     /**
+     * Send a Conseil query
+     * @param client The HTTP client used to send the request
+     * @param queryUrl The API endpoint to send the query to
+     * @param queryBody The body of the query
+     * @return The result of the query
+     */
+    def sendConseilQuery(client: BlazeClientBuilder[IO], queryUrl: Uri, queryBody: String): String = {
+
+        val request = Request[IO](method = Method.POST, uri = queryUrl)
+          .withEntity[String](queryBody)
+          .withHeaders(
+              Header("apiKey", CONSEIl_API_KEY),
+              `Content-Type`(MediaType.application.json),
+              Accept(MediaType.application.json)
+          )
+
+        client.resource.use {client =>
+            client.expect[String](request)
+        }.unsafeRunSync()
+    }
+
+    /**
      * Test retrieval of all tezos attributes from the entities given
      * @param httpClient The BlazeClientBuilder http client to make the conseil request
      * @param entities The Array of entities grab attributes for
      */
-    def testAttributes(httpClient: BlazeClientBuilder[IO], entities: Array[String]): Unit = {
+    def testAttributes(httpClient: BlazeClientBuilder[IO], entities: Array[String] = Requests.TEZOS_ENTITIES): Unit = {
         entities.foreach(entity => {
             println("\n\n\nTesting Tezos " + entity + " Attributes\n")
             println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.getTezosAttributePath(entity))))
         })
     }
+
+    def testAttributeData(httpClient: BlazeClientBuilder[IO], entityAttributes: Map[String, Array[String]] = Requests.TEZOS_ENTITY_ATTRIBUTES): Unit = {
+
+        entityAttributes.foreach(entity => {
+
+            val queryString: String =
+                """
+                  |{
+                  |     "fields": %FIELDS%,
+                  |     "predicates": [],
+                  |     "orderBy": [],
+                  |     "aggregation": [],
+                  |     "limit": 10
+                  |}
+                  |""".stripMargin.replace("%FIELDS%", entity._2.asJson.toString)
+
+            println("\n\n\nTesting Tezos " + entity._1 + " Query\n")
+            println(sendConseilQuery(httpClient, CONSEIL.withPath(Requests.getTezosQueryPath(entity._1)), queryString))
+        })
+
+    }
+
 
 }
