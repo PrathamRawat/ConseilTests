@@ -3,7 +3,6 @@ package main
 import java.util.concurrent.Executors
 
 import cats.effect.{ContextShift, IO}
-import io.circe.JsonObject
 import io.circe.parser._
 import io.circe.syntax._
 import org.http4s.Method._
@@ -29,18 +28,34 @@ object Main {
         //        TESTING CONSEIL BUILD REQUESTS
 
         println("\n\n\nTesting Info Endpoint:\n")
-        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.ConseilRequests.CONSEIL_BUILD_INFO)))
+        println(sendConseilRequest(
+            httpClient,
+            CONSEIL.withPath(Requests.ConseilRequests.CONSEIL_BUILD_INFO),
+            Requests.TezosValidationLists.TEZOS_INFO_VALIDATION
+        ))
 
         println("\n\n\nTesting Platforms Endpoint\n")
-        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.ConseilRequests.CONSEIL_PLATFORMS)))
+        println(sendConseilRequest(
+            httpClient,
+            CONSEIL.withPath(Requests.ConseilRequests.CONSEIL_PLATFORMS),
+            Requests.TezosValidationLists.TEZOS_PLATFORMS_VALIDATION
+        ))
 
         //        TESTING CONSEIL TEZOS BUILD CONFIG
 
         println("\n\n\nTesting Tezos Networks\n")
-        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosConfig.TEZOS_NETWORKS)))
+        println(sendConseilRequest(
+            httpClient,
+            CONSEIL.withPath(Requests.TezosConfig.TEZOS_NETWORKS),
+            Requests.TezosValidationLists.TEZOS_NETWORKS_VALIDATION
+        ))
 
         println("\n\n\nTesting Tezos Entitites\n")
-        println(sendConseilRequest(httpClient, CONSEIL.withPath(Requests.TezosConfig.TEZOS_ENTITIES)))
+        println(sendConseilRequest(
+            httpClient,
+            CONSEIL.withPath(Requests.TezosConfig.TEZOS_ENTITIES),
+            Requests.TezosValidationLists.TEZOS_ENTITIES_VALIDATION
+        ))
 
         //        TESTING TEZOS ENTITY ATTRIBUTES
         testAttributes(httpClient)
@@ -84,7 +99,7 @@ object Main {
      * @param queryUrl The URI to query
      * @return String results from the query performed
      */
-    def sendConseilRequest(client: BlazeClientBuilder[IO], queryUrl: Uri): String = {
+    def sendConseilRequest(client: BlazeClientBuilder[IO], queryUrl: Uri, validationItems: List[String] = List[String]()): String = {
 
         val conseilRequest = GET(
             queryUrl,
@@ -93,9 +108,15 @@ object Main {
             Header("apiKey", CONSEIl_API_KEY)
         )
 
-        client.resource.use { client =>
+        val result: String = client.resource.use { client =>
             client.expect[String](conseilRequest)
         }.unsafeRunSync()
+
+        if(validationItems.nonEmpty) validationItems.foreach(item => {
+            validateJsonByKey(item, result, true)
+        })
+
+        result
     }
 
     /**
@@ -132,6 +153,22 @@ object Main {
         })
     }
 
+    def testMetadata(httpClient: BlazeClientBuilder[IO], entityAttributes: Map[String, Array[String]] = Requests.TEZOS_ENTITY_ATTRIBUTES): Unit = {
+
+        entityAttributes.foreach(entity => {
+
+            entity._2.foreach(attribute => {
+
+                println("\n\n\nTesting Tezos " + entity._1 + " " + attribute + " Metadata\n")
+                val result: String = sendConseilRequest(httpClient, CONSEIL.withPath(Requests.getTezosMetadataPath(entity._1, attribute)))
+                println(result)
+
+            })
+
+        })
+
+    }
+
     def testAttributeData(httpClient: BlazeClientBuilder[IO], entityAttributes: Map[String, Array[String]] = Requests.TEZOS_ENTITY_ATTRIBUTES): Unit = {
 
         entityAttributes.foreach(entity => {
@@ -148,7 +185,13 @@ object Main {
                   |""".stripMargin.replace("%FIELDS%", entity._2.asJson.toString)
 
             println("\n\n\nTesting Tezos " + entity._1 + " Query\n")
-            println(sendConseilQuery(httpClient, CONSEIL.withPath(Requests.getTezosQueryPath(entity._1)), queryString))
+            val result: String = sendConseilQuery(httpClient, CONSEIL.withPath(Requests.getTezosQueryPath(entity._1)), queryString)
+            println(result)
+
+            entity._2.foreach(attribute => {
+                validateJsonByKey(attribute, result)
+            })
+
         })
 
     }
@@ -202,18 +245,28 @@ object Main {
 
                 println(result)
 
-                if(result.compareTo("") == 0) throw new NullPointerException("Query Returned an Empty String")
+                validateJsonByKey(attribute, result, notNull = true)
 
-                parse(result) match {
-                    case Left(failure) => throw new IllegalArgumentException("Query did not return valid JSON")
-                    case Right(json) => {
-
-                        if(json.findAllByKey(attribute).isEmpty) throw new IllegalArgumentException("Non-Null Attribute was Null")
-
-                    }
-                }
             })
         })
+    }
+
+    def validateJsonByKey(key: String, result: String, notNull: Boolean = false): Unit = {
+
+        if(result.compareTo("") == 0) throw new NullPointerException("Query Returned an Empty String")
+
+        parse(result) match {
+            case Left(failure) => throw new IllegalArgumentException("Query did not return valid JSON")
+            case Right(json) => {
+
+                if(json.findAllByKey(key).isEmpty) throw new IllegalArgumentException("Value \"" + key + "\" not found in output")
+                if(notNull && json.findAllByKey(key).contains(null)) throw new IllegalArgumentException("Value \"" + key + "\" was Null")
+
+                println(key + " was validated!")
+
+            }
+        }
+
     }
 
 }

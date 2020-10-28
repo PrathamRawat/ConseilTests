@@ -286,6 +286,8 @@ object Requests {
 
     def getTezosQueryPath(entity: String): String = "/v2/data/tezos/" + CONSEIL_NETWORK + "/" + entity
 
+    def getTezosMetadataPath(entity: String, attribute: String): String = "/v2/metadata/tezos/" + CONSEIL_NETWORK + "/" + entity + "/" + attribute
+
     object TezosChainRequests {
 
         final val TEZOS_OPERATION_KINDS: String = "/v2/metadata/tezos/" + CONSEIL_NETWORK + "/operations/kind"
@@ -296,7 +298,35 @@ object Requests {
 
         final val TEZOS_GET_ACCOUNT: String = "/v2/data/tezos/" + CONSEIL_NETWORK + "/accounts/KT1V7VoyjbvqSmnRtv9pHkRuBCPT7UubCrCX"
 
+    }
 
+    object TezosValidationLists {
+
+        final val TEZOS_INFO_VALIDATION = List(
+            "application",
+            "version",
+            "git",
+            "tags"
+        )
+
+        final val TEZOS_PLATFORMS_VALIDATION = List(
+            "name",
+            "displayName"
+        )
+
+        final val TEZOS_NETWORKS_VALIDATION = List(
+            "name",
+            "displayName",
+            "platform",
+            "network"
+        )
+
+        final val TEZOS_ENTITIES_VALIDATION = List(
+            "name",
+            "displayName",
+            "count",
+            "displayNamePlural"
+        )
 
     }
 
