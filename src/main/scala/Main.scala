@@ -1,25 +1,16 @@
 package main
 
-import org.http4s.Request
-import org.http4s.client.blaze._
-//import org.http4s.circe._
 import java.util.concurrent.Executors
 
 import cats.effect.{ContextShift, IO}
+import io.circe.JsonObject
+import io.circe.parser._
+import io.circe.syntax._
 import org.http4s.Method._
+import org.http4s.client.blaze._
 import org.http4s.client.dsl.io._
 import org.http4s.headers._
-import org.http4s.{Header, MediaType, Method, Uri}
-
-import io.circe._
-import io.circe.generic.auto._
-import io.circe.jawn._
-import io.circe.syntax._
-import io.circe.Json
-
-//import org.json4s._
-//import org.json4s.native.Serialization._
-//import org.json4s.native.Serialization
+import org.http4s.{Header, MediaType, Method, Request, Uri}
 
 import scala.concurrent.ExecutionContext
 
@@ -55,6 +46,8 @@ object Main {
         testAttributes(httpClient)
 
         testAttributeData(httpClient)
+
+        validateAttributeData(httpClient)
 
 
 
@@ -160,5 +153,67 @@ object Main {
 
     }
 
+    def validateAttributeData(httpClient: BlazeClientBuilder[IO], entityAttributes: Map[String, Array[String]] = Requests.TEZOS_ENTITY_ATTRIBUTES): Unit = {
+
+        entityAttributes.foreach(entity => {
+
+            entity._2.foreach(attribute => {
+
+                val queryString: String =
+                    """
+                      |{
+                      |     "field": ["%FIELD%"],
+                      |     "predicates": [
+                      |         {
+                      |             "field": "%FIELD%",
+                      |             "operation": "isnull",
+                      |             "set": [""],
+                      |             "inverse": true
+                      |         }
+                      |     ],
+                      |     "orderBy": [],
+                      |     "aggregation": [],
+                      |     "limit": 1
+                      |}
+                      |""".stripMargin.replace("%FIELD%", attribute)
+
+                println("\n\n\nValidating Tezos " + entity._1 + " " + attribute + " Data\n")
+                var result: String = ""
+                try {
+                    result = sendConseilQuery(httpClient, CONSEIL.withPath(Requests.getTezosQueryPath(entity._1)), queryString)
+                } catch {
+                    case x: org.http4s.client.UnexpectedStatus => {
+
+                        val queryString: String =
+                            """
+                              |{
+                              |     "field": ["%FIELD%"],
+                              |     "predicates": [],
+                              |     "orderBy": [],
+                              |     "aggregation": [],
+                              |     "limit": 1
+                              |}
+                              |""".stripMargin.replace("%FIELD%", attribute)
+
+                        result = sendConseilQuery(httpClient, CONSEIL.withPath(Requests.getTezosQueryPath(entity._1)), queryString)
+
+                    }
+                }
+
+                println(result)
+
+                if(result.compareTo("") == 0) throw new NullPointerException("Query Returned an Empty String")
+
+                parse(result) match {
+                    case Left(failure) => throw new IllegalArgumentException("Query did not return valid JSON")
+                    case Right(json) => {
+
+                        if(json.findAllByKey(attribute).isEmpty) throw new IllegalArgumentException("Non-Null Attribute was Null")
+
+                    }
+                }
+            })
+        })
+    }
 
 }
