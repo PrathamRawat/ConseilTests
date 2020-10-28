@@ -169,6 +169,11 @@ object Main {
 
     }
 
+    /**
+     * Test Conseil Attributes for each entity
+     * @param httpClient The BlazeClientBuilder[IO] object to make the requests to conseil
+     * @param entityAttributes A Map that has entities as keys, and an array of attributes as its values
+     */
     def testAttributeData(httpClient: BlazeClientBuilder[IO], entityAttributes: Map[String, Array[String]] = Requests.TEZOS_ENTITY_ATTRIBUTES): Unit = {
 
         entityAttributes.foreach(entity => {
@@ -196,6 +201,11 @@ object Main {
 
     }
 
+    /**
+     * Sends a query to make sure each attribute data is valid
+     * @param httpClient The BlazeClientBuilder[IO] object that sends the conseil requests
+     * @param entityAttributes A Map that has entities as keys, and an array of attributes as its values
+     */
     def validateAttributeData(httpClient: BlazeClientBuilder[IO], entityAttributes: Map[String, Array[String]] = Requests.TEZOS_ENTITY_ATTRIBUTES): Unit = {
 
         entityAttributes.foreach(entity => {
@@ -251,6 +261,12 @@ object Main {
         })
     }
 
+    /**
+     * Validate a query output by searching for JSON keys
+     * @param key The json key to search for
+     * @param result The result of a query to search in
+     * @param notNull Whether the key's value should be allowed to be null or not
+     */
     def validateJsonByKey(key: String, result: String, notNull: Boolean = false): Unit = {
 
         if(result.compareTo("") == 0) throw new NullPointerException("Query Returned an Empty String")
